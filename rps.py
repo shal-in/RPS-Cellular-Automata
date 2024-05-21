@@ -1,5 +1,7 @@
 import numpy as np
+import os
 
+# Code for simulation
 def generate_grid(states=3, size=(10, 10)):
     return np.random.randint(0, states, size=size)
 
@@ -35,3 +37,48 @@ def run_simulation(grid, states=3, threshold=2):
             new_state = calculate_new_state(grid[i, j], tally, threshold, states)
             new_grid[i, j] = new_state
     return new_grid
+
+
+
+
+
+
+
+
+
+
+
+
+# Helper code for data processing, animations, etc
+def generate_file(states, size, threshold, intervals, description=None):
+    i = 0
+    filename = f"output-{i}.txt"
+    while os.path.exists(filename):
+        i += 1
+        filename = f"output-{i}.txt"
+
+    with open(filename, "w") as file:
+        file.write(f">states={states},size={size},threshold={threshold},intervals={intervals},description={description}\n")
+
+    return filename
+
+def read_grids_from_file(filename):
+    grids = []
+
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+
+    current_grid = []
+    for line in lines[1:]:  # Skip the first row (description)
+        if '>' in line.strip():
+            if current_grid:
+                grids.append(np.array(current_grid, dtype=int))
+                current_grid = []
+        else:
+            current_grid.append(list(map(int, line.strip().split())))
+
+    # Append the last grid if it exists
+    if current_grid:
+        grids.append(np.array(current_grid, dtype=int))
+
+    return grids
