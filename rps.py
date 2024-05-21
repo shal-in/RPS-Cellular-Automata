@@ -1,4 +1,8 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.colors import LinearSegmentedColormap
+from datetime import datetime
 import os
 
 # Code for simulation
@@ -52,15 +56,16 @@ def run_simulation(grid, states=3, threshold=2):
 # Helper code for data processing, animations, etc
 def generate_file(states, size, threshold, intervals, description=None):
     i = 0
-    filename = f"output-{i}.txt"
-    while os.path.exists(filename):
+    filename = f"states{states}-threshold{threshold}-intervals{intervals}"
+    while os.path.exists(f"outputs/{filename}.txt"):
         i += 1
-        filename = f"output-{i}.txt"
+        filename = f"states{states}-threshold{threshold}-intervals{intervals}-({i})"
 
-    with open(filename, "w") as file:
+    with open(f"outputs/{filename}.txt", "w") as file:
         file.write(f">states={states},size={size},threshold={threshold},intervals={intervals},description={description}\n")
 
     return filename
+
 
 def read_grids_from_file(filename):
     grids = []
@@ -82,3 +87,53 @@ def read_grids_from_file(filename):
         grids.append(np.array(current_grid, dtype=int))
 
     return grids
+
+
+def create_animation_from_file(filename, fps=24, interval=75, show_animation=True, save_as_gif=False):
+    # Read grids from file
+    grids = read_grids_from_file(f"outputs/{filename}.txt")
+    
+    # Determine the aspect ratio of the grids (assuming they are square)
+    grid_shape = grids[0].shape
+    aspect_ratio = grid_shape[1] / grid_shape[0]
+    
+    # Define hex color values for custom colormap
+    colors = ['#006C67', '#F194B4', '#003844', '#FFB100', '#FFEBC6', '#B3C0A4', '#6C91C2', '#DBD56E', '#7D7C84', '#DE1A1A']
+    n_bins = [0.0, 1/8, 2/8, 3/8, 4/8, 5/8, 6/8, 7/8, 1]  # Boundaries for the colors
+    
+    # Create colormap
+    custom_cmap = LinearSegmentedColormap.from_list("custom_cmap", list(zip(n_bins, colors)))
+    
+    # Create a figure and a set of subplots for the animation
+    fig, ax = plt.subplots(figsize=(aspect_ratio * 5, 5))  # Adjust the figure size based on the aspect ratio
+    cax = ax.matshow(grids[0], cmap=custom_cmap)
+    
+    # Remove axis labels and ticks
+    ax.axis('off')
+    
+    def update(frame):
+        cax.set_array(grids[frame])
+        return [cax]
+    
+    # Create the animation using FuncAnimation
+    ani = animation.FuncAnimation(fig, update, frames=len(grids), interval=interval, blit=True)
+    
+    # Remove margins and make the figure fill the screen
+    fig.tight_layout(pad=0)
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    
+    if save_as_gif:
+        # Save the animation as a GIF
+        ani.save(f"outputs/{filename}.gif", writer='pillow', fps=fps)
+    
+    if show_animation:
+        # Show the animation
+        plt.show()
+
+def get_current_time():
+    # Get the current date and time
+    current_datetime = datetime.now()
+    # Format the date and time
+    formatted_datetime = current_datetime.strftime("%H:%M:%S")
+
+    return formatted_datetime
